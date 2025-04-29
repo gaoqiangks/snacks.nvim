@@ -76,9 +76,9 @@ math.randomseed(os.time())
 ---@field formats table<string, snacks.dashboard.Text|fun(item:snacks.dashboard.Item, ctx:snacks.dashboard.Format.ctx):snacks.dashboard.Text>
 local defaults = {
   width = 60,
-  row = nil, -- dashboard position. nil for center
-  col = nil, -- dashboard position. nil for center
-  pane_gap = 4, -- empty columns between vertical panes
+  row = nil,                                                                   -- dashboard position. nil for center
+  col = nil,                                                                   -- dashboard position. nil for center
+  pane_gap = 4,                                                                -- empty columns between vertical panes
   autokeys = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", -- autokey sequence
   -- These settings are used by some built-in sections
   preset = {
@@ -136,7 +136,7 @@ local defaults = {
   },
   sections = {
     { section = "header" },
-    { section = "keys", gap = 1, padding = 1 },
+    { section = "keys",   gap = 1, padding = 1 },
     { section = "startup" },
   },
   debug = false,
@@ -423,6 +423,7 @@ function D:format(item)
   local block = item.text and self:block(self:texts(item.text))
   local left = block and { width = 0 } or find({ "icon" }, { align = "left", padding = 1 })
   local right = block and { width = 0 } or find({ "label", "key" }, { align = "right", padding = 1 })
+  local lleft = right
   local center = block or find({ "header", "footer", "title", "desc", "file" }, { flex = true, multi = true })
 
   local padding = self:padding(item)
@@ -431,17 +432,22 @@ function D:format(item)
     ret[l] = { width = 0 }
     left[l] = left[l] or { width = 0 }
     right[l] = right[l] or { width = 0 }
+    lleft[l] = lleft[l] or { width = 0 }
     center[l] = center[l] or { width = 0 }
     self:align(left[l], left.width, "left")
+    self:align(lleft[l], lleft.width, "left")
     if item.indent then
       self:align(left[l], left[l].width + item.indent, "right")
+      self:align(lleft[l], lleft[l].width + item.indent, "right")
     end
     self:align(right[l], right.width, "right")
-    self:align(center[l], self.opts.width - left[l].width - right[l].width, item.align)
+    self:align(center[l], self.opts.width - -lleft[l].width - left[l].width - right[l].width, item.align)
+    --将快捷键也放在最左侧
+    vim.list_extend(ret[l], lleft[l])
     vim.list_extend(ret[l], left[l])
     vim.list_extend(ret[l], center[l])
     vim.list_extend(ret[l], right[l])
-    ret[l].width = left[l].width + center[l].width + right[l].width
+    ret[l].width = lleft[l].width + left[l].width + center[l].width + right[l].width
   end
   for _ = 1, padding[2] do
     table.insert(ret, 1, { width = self.opts.width })
@@ -590,7 +596,7 @@ end
 -- Layout in panes
 function D:layout()
   local max_panes =
-    math.max(1, math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap)))
+      math.max(1, math.floor((self._size.width + self.opts.pane_gap) / (self.opts.width + self.opts.pane_gap)))
   self.panes = {} ---@type snacks.dashboard.Item[][]
   for _, item in ipairs(self.items) do
     if not item.hidden then
@@ -609,7 +615,7 @@ end
 function D:render()
   -- horizontal position
   self.col = self.opts.col
-    or math.floor(self._size.width - (self.opts.width * #self.panes + self.opts.pane_gap * (#self.panes - 1))) / 2
+      or math.floor(self._size.width - (self.opts.width * #self.panes + self.opts.pane_gap * (#self.panes - 1))) / 2
 
   self.lines = {} ---@type string[]
   local extmarks = {} ---@type {row:number, col:number, opts:vim.api.keyset.set_extmark}[]
@@ -825,12 +831,12 @@ M.sections = {}
 ---@return snacks.dashboard.Item?
 function M.sections.session(item)
   local plugins = {
-    { "persistence.nvim", ":lua require('persistence').load()" },
-    { "persisted.nvim", ":lua require('persisted').load()" },
+    { "persistence.nvim",       ":lua require('persistence').load()" },
+    { "persisted.nvim",         ":lua require('persisted').load()" },
     { "neovim-session-manager", ":SessionManager load_current_dir_session" },
-    { "possession.nvim", ":PossessionLoadCwd" },
-    { "mini.sessions", ":lua require('mini.sessions').read()" },
-    { "mini.nvim", ":lua require('mini.sessions').read()" },
+    { "possession.nvim",        ":PossessionLoadCwd" },
+    { "mini.sessions",          ":lua require('mini.sessions').read()" },
+    { "mini.nvim",              ":lua require('mini.sessions').read()" },
   }
   for _, plugin in pairs(plugins) do
     if M.have_plugin(plugin[1]) then
@@ -993,7 +999,7 @@ function M.sections.terminal(opts)
           if recording:is_active() then
             table.insert(output, data)
           end
-          if first and has_cache then -- clear the screen if cache was expired
+          if first and has_cache then    -- clear the screen if cache was expired
             first = false
             data = "\27[2J\27[H" .. data -- clear screen
           end
@@ -1073,10 +1079,10 @@ function M.sections.startup(opts)
   return {
     align = "center",
     text = {
-      { icon .. "Neovim loaded ", hl = "footer" },
+      { icon .. "Neovim loaded ",                         hl = "footer" },
       { M.lazy_stats.loaded .. "/" .. M.lazy_stats.count, hl = "special" },
-      { " plugins in ", hl = "footer" },
-      { ms .. "ms", hl = "special" },
+      { " plugins in ",                                   hl = "footer" },
+      { ms .. "ms",                                       hl = "special" },
     },
   }
 end
